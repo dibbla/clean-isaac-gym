@@ -102,6 +102,7 @@ def main(cfg_path, log_path):
     batch_size = cfg["train"]["batch_size"]
     minibatch_size = cfg["train"]["minibatch_size"]
     num_updates = total_timesteps // batch_size
+    print(f"num_updates={num_updates}")
 
     for update in range(num_updates):
         # sampling trajectories for *num_steps* steps
@@ -202,9 +203,21 @@ def main(cfg_path, log_path):
                 loss.backward()
                 nn.utils.clip_grad_norm_(actor_critic.parameters(), cfg["train"]["max_grad_norm"])
                 optimizer.step()
+
+                # target KL
+                if cfg["train"]["target_kl"]:
+                    if approx_kl > cfg["train"]["target_kl_coef"]:
+                        break
+
         writer.add_scalar("train/loss", loss, global_steps)
         writer.add_scalar("train/critic_loss", cfg["train"]["vf_coef"] * value_loss, global_steps)
         writer.add_scalar("train/policy_loss", policy_loss, global_steps)
+
+        # model saving
+        if update % cfg["train"]["save_interval"] == 0:
+            torch.save(actor_critic.state_dict(), os.path.join(log_path, folder_name, f"model_{update}.pth"))
+    
+    torch.save(actor_critic.state_dict(), os.path.join(log_path, folder_name, f"model_final.pth"))
 
 
 

@@ -5,20 +5,23 @@ train:
   gamma: 0.99 # Discount factor
   gae_lambda: 0.95 # GAE lambda
   clip: 0.2 # PPO clip
-  ent_coef: 0.0 # Entropy coefficient
+  ent_coef: 0.001 # Entropy coefficient
   vf_coef: 2 # Value function coefficient
   max_grad_norm: 1 # Max gradient norm
   vloss_clip: True
   vloss_clip_coef: 0.2
+  target_kl: True
+  target_kl_coef: 0.2
 
   num_steps: 16
-  total_timesteps: 5000000
+  total_timesteps: 1000000
   batch_size: 128
   update_epochs: 4
   minibatch_size: 32
+  save_interval: 1000
 
   env: 
-    task: Cartpole # Environment name
+    task: Ant # Environment name
     num_envs: 4096 # Number of environments
     seed: 0 # Random seed
     sim_device: cuda:0
