@@ -1,0 +1,35 @@
+train:
+  train_name: CartPole # Task name
+  device: cuda:0 # Device
+  qf_lr: 0.0001 # Learning rate for Q function
+  ac_lr: 0.0001 # Learning rate for actor
+  exploration_noise: 0.1
+  policy_noise: 0.2
+  noise_clip: 0.5
+  gamma: 0.995
+  tau: 0.005
+
+  num_steps: 16
+  total_timesteps: 1000000
+  batch_size: 128
+  update_epochs: 4
+  minibatch_size: 32
+  save_interval: 1000
+  policy_freq: 2
+
+  buffer:
+    size: 1000000
+
+
+  env: 
+    task: Ant # Environment name
+    num_envs: 1000 # Number of environments
+    seed: 0 # Random seed
+    sim_device: cuda:0
+    rl_device: cuda:0
+    graphics_device_id: 0
+    headless: False
+    multi_gpu: False
+    force_render: True
+  network:
+    hidden_dim: 128
