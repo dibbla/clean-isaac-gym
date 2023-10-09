@@ -20,4 +20,4 @@ print("Action space is", envs.action_space)
 obs = envs.reset()
 for _ in range(2000):
 	random_actions = 2.0 * torch.rand((num_envs,) + envs.action_space.shape, device = 'cuda:0') - 1.0
-	envs.step(random_actions)
+	obs, reward, done, info = envs.step(random_actions)
