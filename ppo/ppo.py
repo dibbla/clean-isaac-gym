@@ -81,7 +81,7 @@ def main(cfg_path, log_path):
     actor_critic = ActorCritic(envs, network_cfg["hidden_dim"], nn.ReLU).to(device)
 
     # setup optimizer
-    optimizer = torch.optim.Adam(actor_critic.parameters(), lr=cfg["train"]["lr"])
+    optimizer = torch.optim.Adam(actor_critic.parameters(), lr=cfg["train"]["lr"], eps=1e-5)
 
     # setup buffers
     obs = torch.zeros((cfg["train"]["num_steps"], envs.num_envs) + envs.observation_space.shape).to(device)
@@ -99,8 +99,8 @@ def main(cfg_path, log_path):
     global_steps = 0 # total interactions with the environment
     num_steps = cfg["train"]["num_steps"]
     total_timesteps = cfg["train"]["total_timesteps"]
-    batch_size = cfg["train"]["batch_size"]
-    minibatch_size = cfg["train"]["minibatch_size"]
+    batch_size = int(num_steps * envs.num_envs) # consistent with the buffer
+    minibatch_size = int(batch_size // cfg["train"]["num_minibatches"])
     num_updates = total_timesteps // batch_size
     print(f"num_updates={num_updates}")
 
@@ -113,8 +113,8 @@ def main(cfg_path, log_path):
 
             with torch.no_grad():
                 action, log_prob, _, value = actor_critic.get_action_n_value(obs[step])
+                values[step] = value.squeeze(-1)
             actions[step], log_probs[step] = action, log_prob
-            values[step] = value.squeeze(-1)
 
             # apply action
             next_obs, rewards[step], next_done, info = envs.step(action)
@@ -131,7 +131,7 @@ def main(cfg_path, log_path):
         
         # compute advantages with GAE
         with torch.no_grad():
-            next_values = actor_critic.get_value(next_obs).squeeze(-1) # value of last step in this round
+            next_values = actor_critic.get_value(next_obs).reshape(1, -1) # value of last step in this round (1, num_envs)
             advantages = torch.zeros_like(rewards).to(device)
             lastgaelam = 0
             # loop reversely
@@ -171,6 +171,7 @@ def main(cfg_path, log_path):
                     clipfracs += [((ratio - 1.0).abs() > cfg["train"]["clip"]).float().mean().item()]
 
                 mb_advantages = b_advantages[mb]
+                mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
 
                 # policy loss
                 policy_loss1 = -ratio * mb_advantages

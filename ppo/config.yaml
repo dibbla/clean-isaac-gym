@@ -1,7 +1,7 @@
 train:
-  train_name: CartPole # Task name
+  train_name: Ant # Task/Run name
   device: cuda:0 # Device
-  lr: 0.0001 # Learning rate
+  lr: 0.0026 # Learning rate
   gamma: 0.99 # Discount factor
   gae_lambda: 0.95 # GAE lambda
   clip: 0.2 # PPO clip
@@ -14,14 +14,13 @@ train:
   target_kl_coef: 0.2
 
   num_steps: 16
-  total_timesteps: 1000000
-  batch_size: 128
+  total_timesteps: 300000000
   update_epochs: 4
-  minibatch_size: 32
+  num_minibatches: 2
   save_interval: 1000
 
   env: 
-    task: Ant # Environment name
+    task: Anymal # Environment name
     num_envs: 4096 # Number of environments
     seed: 0 # Random seed
     sim_device: cuda:0

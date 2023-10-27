@@ -1,20 +1,25 @@
 # predeined models for PPO can be found here
 # the repo provides basic MLP models
 import logging
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+    torch.nn.init.orthogonal_(layer.weight, std)
+    torch.nn.init.constant_(layer.bias, bias_const)
+    return layer
 
 class Actor(nn.Module):
     def __init__(self, state_dim, action_dim, hidden_dim, activation):
         super(Actor, self).__init__()
         self.networks = nn.Sequential(
-            nn.Linear(state_dim, hidden_dim),
+            layer_init(nn.Linear(state_dim, hidden_dim)),
             activation(),
-            nn.Linear(hidden_dim, hidden_dim),
+            layer_init(nn.Linear(hidden_dim, hidden_dim)),
             activation(),
-            nn.Linear(hidden_dim, action_dim),
-            nn.Tanh()
+            layer_init(nn.Linear(hidden_dim, action_dim), std=0.01),
         )
 
     def forward(self, x):
@@ -25,11 +30,11 @@ class Critic(nn.Module):
     def __init__(self, state_dim, hidden_dim, activation):
         super(Critic, self).__init__()
         self.networks = nn.Sequential(
-            nn.Linear(state_dim, hidden_dim),
+            layer_init(nn.Linear(state_dim, hidden_dim)),
             activation(),
-            nn.Linear(hidden_dim, hidden_dim),
+            layer_init(nn.Linear(hidden_dim, hidden_dim)),
             activation(),
-            nn.Linear(hidden_dim, 1)
+            layer_init(nn.Linear(hidden_dim, 1), std=1)
         )
 
     def forward(self, x):
