@@ -55,6 +55,7 @@ class ReplayBufferTorch(ReplayBuffer):
         
         print("   observations shape: ", self.observations.shape)
         print("   actions shape: ", self.actions.shape)
+        print("   rewards shape: ", self.rewards.shape)
         print("ReplayBufferTorch initilized.")
 
     def add(self, obs, next_obs, action, reward, done, infos):

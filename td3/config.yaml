@@ -1,29 +1,27 @@
 train:
-  train_name: CartPole # Task name
+  train_name: TD3-train # Task name
   device: cuda:0 # Device
-  qf_lr: 0.0001 # Learning rate for Q function
-  ac_lr: 0.0001 # Learning rate for actor
+  qf_lr: 0.00001 # Learning rate for Q function
+  ac_lr: 0.00001 # Learning rate for actor
   exploration_noise: 0.1
-  policy_noise: 0.2
-  noise_clip: 0.5
+  policy_noise: 0.05
+  noise_clip: 0.1
   gamma: 0.995
   tau: 0.005
 
-  num_steps: 16
-  total_timesteps: 1000000
-  batch_size: 128
-  update_epochs: 4
-  minibatch_size: 32
+  total_timesteps: 3000000
+  learning_starts: 1000
+  batch_size: 512
   save_interval: 1000
   policy_freq: 2
 
   buffer:
-    size: 1000000
+    size: 5000000
 
 
   env: 
-    task: Ant # Environment name
-    num_envs: 1000 # Number of environments
+    task: Anymal # Environment name
+    num_envs: 4096 # Number of environments
     seed: 0 # Random seed
     sim_device: cuda:0
     rl_device: cuda:0

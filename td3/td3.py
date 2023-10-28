@@ -91,7 +91,7 @@ def main(cfg_path, log_path):
 
     # setup optimizers
     q_optimizer = torch.optim.Adam(list(qf1.parameters()) + list(qf2.parameters()), lr=cfg["train"]["qf_lr"])
-    actor_optimizer = torch.optim.Adam(actor.parameters(), lr=cfg["train"]["ac_lr"])
+    actor_optimizer = torch.optim.Adam(list(actor.parameters()), lr=cfg["train"]["ac_lr"])
 
     # setup replay buffer
     buffer_cfg = cfg["train"]["buffer"]
@@ -104,17 +104,17 @@ def main(cfg_path, log_path):
     )
 
     # training loop
+    learning_starts = cfg["train"]["learning_starts"]
     exploration_noise = cfg["train"]["exploration_noise"]
     action_low, action_high = torch.tensor(envs.action_space.low).to(device), torch.tensor(envs.action_space.high).to(device)
     obs = envs.reset()
 
     for global_steps in range(cfg["train"]["total_timesteps"]):
-
         with torch.no_grad():
-            actions = actor(obs).to(device)
+            actions = actor(obs)
             actions += torch.normal(0, actor.action_scale * exploration_noise)
             actions = torch.clamp(actions, action_low, action_high)
-        
+
         # apply action to the environment
         next_obs, rewards, dones, infos = envs.step(actions)
         rb.add(obs, next_obs, actions, rewards.unsqueeze(1), dones.unsqueeze(1), infos)
@@ -129,45 +129,51 @@ def main(cfg_path, log_path):
                 writer.add_scalar("charts/episodic_length", infos["l"][idx], global_steps)
                 break     
 
-
         # train
-        data = rb.sample(cfg["train"]["batch_size"])
-        with torch.no_grad():
-            clipped_noise = (torch.randn_like(data.actions, device=device) * cfg["train"]["policy_noise"]).clamp(
-                        -cfg["train"]["noise_clip"], cfg["train"]["noise_clip"]
-                    ) * target_actor.action_scale
-            next_state_actions = (target_actor(data.next_observations) + clipped_noise).clamp(action_low, action_high)
-            qf1_next_target = target_qf1(data.next_observations, next_state_actions)
-            qf2_next_target = target_qf2(data.next_observations, next_state_actions)
-            min_qf_next_target = torch.min(qf1_next_target, qf2_next_target)
-            next_q_value = data.rewards.flatten() + (1 - data.dones.flatten()) * cfg["train"]["gamma"] * (min_qf_next_target).view(-1)
-        
-        # building q loss
-        qf1_action_values = qf1(data.observations, data.actions).view(-1)
-        qf2_action_values = qf2(data.observations, data.actions).view(-1)
-        qf1_loss = F.mse_loss(qf1_action_values, next_q_value)
-        qf2_loss = F.mse_loss(qf2_action_values, next_q_value)
-        qf_loss = qf1_loss + qf2_loss
+        if rb.pos * envs.num_envs >= cfg["train"]["batch_size"] or rb.full:
+            data = rb.sample(cfg["train"]["batch_size"])
+            with torch.no_grad():
+                clipped_noise = (torch.randn_like(data.actions, device=device) * cfg["train"]["policy_noise"]).clamp(
+                            -cfg["train"]["noise_clip"], cfg["train"]["noise_clip"]
+                        ) * target_actor.action_scale
+                next_state_actions = (target_actor(data.next_observations) + clipped_noise).clamp(action_low, action_high)
+                qf1_next_target = target_qf1(data.next_observations, next_state_actions)
+                qf2_next_target = target_qf2(data.next_observations, next_state_actions)
+                min_qf_next_target = torch.min(qf1_next_target, qf2_next_target)
+                next_q_value = data.rewards.flatten() + (1 - data.dones.flatten()) * cfg["train"]["gamma"] * (min_qf_next_target).view(-1)
+            
+            # building q loss
+            qf1_action_values = qf1(data.observations, data.actions).view(-1)
+            qf2_action_values = qf2(data.observations, data.actions).view(-1)
+            qf1_loss = F.mse_loss(qf1_action_values, next_q_value)
+            qf2_loss = F.mse_loss(qf2_action_values, next_q_value)
+            qf_loss = qf1_loss + qf2_loss
 
-        # optimize the model
-        q_optimizer.zero_grad()
-        qf_loss.backward()
-        q_optimizer.step()
+            # optimize the model
+            q_optimizer.zero_grad()
+            qf_loss.backward()
+            q_optimizer.step()
 
-        # delayed policy update
-        if global_steps % cfg["train"]["policy_freq"] == 0:
-            actor_loss = -qf1(data.observations, actor(data.observations)).mean()
-            actor_optimizer.zero_grad()
-            actor_loss.backward()
-            actor_optimizer.step()
+            # delayed policy update
+            if global_steps % cfg["train"]["policy_freq"] == 0:
+                actor_loss = -qf1(data.observations, actor(data.observations)).mean()
+                actor_optimizer.zero_grad()
+                actor_loss.backward()
+                actor_optimizer.step()
 
-            # update target networks
-            for target_param, param in zip(target_actor.parameters(), actor.parameters()):
-                target_param.data.copy_(cfg["train"]["tau"] * param.data + (1 - cfg["train"]["tau"]) * target_param.data)
-            for target_param, param in zip(target_qf1.parameters(), qf1.parameters()):
-                target_param.data.copy_(cfg["train"]["tau"] * param.data + (1 - cfg["train"]["tau"]) * target_param.data)
-            for target_param, param in zip(target_qf2.parameters(), qf2.parameters()):
-                target_param.data.copy_(cfg["train"]["tau"] * param.data + (1 - cfg["train"]["tau"]) * target_param.data)
+                # update target networks
+                for target_param, param in zip(target_actor.parameters(), actor.parameters()):
+                    target_param.data.copy_(cfg["train"]["tau"] * param.data + (1 - cfg["train"]["tau"]) * target_param.data)
+                for target_param, param in zip(target_qf1.parameters(), qf1.parameters()):
+                    target_param.data.copy_(cfg["train"]["tau"] * param.data + (1 - cfg["train"]["tau"]) * target_param.data)
+                for target_param, param in zip(target_qf2.parameters(), qf2.parameters()):
+                    target_param.data.copy_(cfg["train"]["tau"] * param.data + (1 - cfg["train"]["tau"]) * target_param.data)
+                
+                writer.add_scalar("loss/actor_loss", actor_loss, global_steps)
+
+            # log loss
+            writer.add_scalar("loss/qf1_loss", qf1_loss, global_steps)
+            writer.add_scalar("loss/qf2_loss", qf2_loss, global_steps)
 
 if __name__ == "__main__":
     cfg_path = os.path.join(os.path.dirname(__file__), "config.yaml")
