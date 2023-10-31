@@ -32,7 +32,7 @@ class ReplayBufferTorch(ReplayBuffer):
         action_space: spaces.Space,
         device: Union[th.device, str] = "cpu",
         n_envs: int = 1, # in PVP case, we only have one env
-        handle_timeout_termination: bool = True,
+        handle_timeout_termination: bool = False,
         force_action_space: spaces.Space = None,
     ):
         print("ReplayBufferTorch initilizing...")
@@ -95,11 +95,12 @@ class ReplayBufferTorch(ReplayBuffer):
 
         next_obs_ = self.next_observations[batch_inds, env_indices, :]
 
-        return ReplayBufferSamplesTorch(
+        data =  ReplayBufferSamplesTorch(
             observations=obs_,
             next_observations=next_obs_,
             dones=self.dones[batch_inds, env_indices] & ~ self.timeouts[batch_inds, env_indices],
             rewards=self.rewards[batch_inds, env_indices],
             actions=self.actions[batch_inds, env_indices], 
         )
+        return data
     

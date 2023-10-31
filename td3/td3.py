@@ -104,7 +104,6 @@ def main(cfg_path, log_path):
     )
 
     # training loop
-    learning_starts = cfg["train"]["learning_starts"]
     exploration_noise = cfg["train"]["exploration_noise"]
     action_low, action_high = torch.tensor(envs.action_space.low).to(device), torch.tensor(envs.action_space.high).to(device)
     obs = envs.reset()
