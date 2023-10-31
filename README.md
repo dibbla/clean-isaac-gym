@@ -5,4 +5,8 @@ The repo aims to provide implementationas that can swiftly modified for prototyp
 
 Supported algorithms:
 - [x] PPO-clip, for continuous action
-- [ ] TD3
+- [x] TD3
+- [ ] SAC
+- [ ] Behavioral Clone
+- [ ] Implicit Behavior Clone
+- [ ] Decision Transformer
