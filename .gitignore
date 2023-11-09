@@ -1,6 +1,7 @@
 # custom ignore by CleanIsaacGym
 */runs
-
+*sample.py
+visualization
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
