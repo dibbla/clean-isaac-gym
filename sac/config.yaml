@@ -1,25 +1,26 @@
 train:
   train_name: TD3-train # Task name
   device: cuda:0 # Device
-  qf_lr: 0.0003 # Learning rate for Q function
+  qf_lr: 0.0005 # Learning rate for Q function
   ac_lr: 0.0003 # Learning rate for actor
   gamma: 0.99
   tau: 0.005
 
   total_timesteps: 3000000
+  start_timesteps: 3000
   batch_size: 512
   save_interval: 1000
   policy_freq: 2
-  target_freq: 2
+  target_freq: 1
 
-  alpha: 0.2
+  alpha: 1
   auto_entropy: True
 
   buffer:
-    size: 10000000
+    size: 1000000
 
   env: 
-    task: Anymal # Environment name
+    task: Ant # Environment name
     num_envs: 1024 # Number of environments
     seed: 0 # Random seed
     sim_device: cuda:0
@@ -29,4 +30,4 @@ train:
     multi_gpu: False
     force_render: True
   network:
-    hidden_dim: 128
+    hidden_dim:  256
