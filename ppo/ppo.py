@@ -52,6 +52,7 @@ def main(cfg_path, log_path):
     device = torch.device(cfg["train"]["device"])
 
     # setup logging
+    log_path += f"/{cfg['train']['env']['task']}"
     if not os.path.exists(log_path):
         os.makedirs(log_path, exist_ok=False)
     folder_names = []

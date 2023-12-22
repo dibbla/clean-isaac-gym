@@ -1,5 +1,5 @@
 train:
-  train_name: Ant # Task/Run name
+  train_name: PPO-train # Task/Run name
   device: cuda:0 # Device
   lr: 0.0026 # Learning rate
   gamma: 0.99 # Discount factor
